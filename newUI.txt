@@ -1,0 +1,555 @@
+
+local Version = "v2.1.0.b1"
+local Exec = tostring(identifyexecutor())
+local Player = game.Players.LocalPlayer
+local HttpService = game.HttpService
+
+local List = HttpService:JSONDecode(game:HttpGet("https://pastebin.com/raw/vT2GWfB6"))
+local Rayfield = loadstring(game:HttpGet("https://pastebin.com/raw/wVf8J5rw"))()
+
+  -- Start of Save and Read Settings Function
+fN = 'V3_Anime_Adventures' -- Paste Name
+pN = Player.Name .. '_AnimeAdventures.json' 
+
+Settings = {}
+function saveSettings()
+    if not isfolder(fN) then
+        makefolder(fN)
+    end
+    writefile(fN .. '/' .. pN, HttpService:JSONEncode(Settings))
+    Settings = ReadSetting()
+    warn("Settings Saved!")
+end
+function ReadSetting()
+    local s, e = pcall(function()
+        if not isfolder(fN) then
+            makefolder(fN)
+        end
+        return HttpService:JSONDecode(readfile(fN .. '/' .. pN))
+    end)
+    if s then
+        return e
+    else
+        saveSettings()
+        return ReadSetting()
+    end
+end
+Settings = ReadSetting()
+  -- End of Save and Read Function
+  
+local Window = Rayfield:CreateWindow({
+   Name = "Anime Adventure - " .. Version .. " - " .. Exec,
+   LoadingTitle = "Anime Adventure",
+   LoadingSubtitle = "by Craymel02",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = nil
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "sirius", -- The Discord invite code, do not include discord.gg/
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Arrayfield",
+      Subtitle = "Key System",
+      Note = "Join the discord (discord.gg/sirius)",
+      FileName = "SiriusKey",
+      SaveKey = false,
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = "Hello"
+   },
+   OldTabLayout = true
+})
+
+     -- Start of Home Tab Function
+local function HomeTab()
+    local Home = Window:CreateTab("Home")  -- Create Tab named Home
+    local Developers = Home:CreateParagraph({  -- Create Developers Paragraph Part
+        Title = "Developers:",
+        Content = "\n Arpon AG#6612, Forever4D#0001, HOLYSHz#3819 & ethreia#1036.\n\n Also thanks to Trapstar#7845, bytenode#9646 for help!\n\n Toggle Key: Right Shift"
+    })
+    local UI = Home:CreateParagraph({  -- Create UI Paragraph Part
+        Title = "User Interface:",
+        Content = "\n Rayfield Interface Suite"
+    })
+    
+    local DiscordButton
+    DiscordButton = Home:CreateButton({  -- Create Discord Button
+        Name = "Discord Link",
+        Info = "Copy Discord Link to Clipboard",
+        Interact = "Get Link",
+        Callback = function()
+            setclipboard("https://discord.gg/2ttfCfzxut")
+    	    _G.DiscordButton = true
+    	    if _G.DiscordButton then
+    		    DiscordButton:Set(nil, "Link Copied!")
+    		    task.wait(0.5)
+    		    _G.DiscordButton = false
+    		    DiscordButton:Set(nil, "Get Link")
+    		    else
+    			    _G.DiscordButton = false
+    	    end
+        end,
+    })
+end
+    -- End of Home Tab Function
+    
+    -- Start of Auto Farm Function
+local function AutoFarmTab()
+    local AutoFarm = Window:CreateTab("Auto Farm")  -- Create Tab named Auto Farm
+    local AutoAbility
+    local SelectWorld
+    local SelectLevel
+    local SelectDifficulty
+    
+    local function UnitSelectionSection()
+        local UnitSelection = AutoFarm:CreateSection("Unit Selection", false, true)  -- Create Section named Unit Selection
+        local SaveUnitToggle = AutoFarm:CreateToggle({  -- Create Save Unit Toggle Button
+            Name = "Auto Save Unit Lineup",
+            Info = "Save Current Lineup Automatically",
+            SectionParent = UnitSelection,
+            CurrentValue = Settings.AutoSaveUnit or false,
+            Callback = function(Value)  -- If Value is true then call Auto Save Unit Function
+                warn("Auto Save Unit is set to " .. tostring(Value))
+                Settings.AutoSaveUnit = Value
+                saveSettings()
+                if Value then
+                    _G.AutoSaveUnit = true
+                    while _G.AutoSaveUnit do
+                        AutoSaveUnit()
+                    end
+                    else
+                        _G.AutoSaveUnit = false
+                end
+            end,
+        })                            
+    end
+    
+    local function SetUnitPositionSection()
+        local UnitPosition = AutoFarm:CreateSection("Set Position Manually", false, true)  -- Create Section named Set Position Manually
+        local Unit = {}
+        for i = 1, 6 do
+            Unit["Unit" .. i] = AutoFarm:CreateButton({  -- Create Set Unit Position Button
+                Name = "Set Unit " .. i .. " Position",
+                Info = "Set Unit " .. i .. " Position",
+                Interact = "Set Position",
+                SectionParent = UnitPosition,
+                Callback = function()
+                end,
+            })
+        end
+    end
+    
+    local function WorldSelectionSection()
+        local map = Settings.SelectLevel or "Not Set"
+        local WorldSelection = AutoFarm:CreateSection("World Selection - Farming on Map:  " .. map, false, true)  -- Create Section named World Selection
+        local SelectCategory = AutoFarm:OldCreateDropdown({  -- Creates Dropdown Menu named Select Category
+            Name = "Select Category",
+            Options = { "Story" , "Legend", "Raid", "Portal", "Dungeon" },
+            CurrentOption = "Select Category",
+            SectionParent = WorldSelection,
+            MultiSelection = false,  -- If MultiSelections is allowed
+            Callback = function(Option)
+                warn("Category Chosen is " .. tostring(Option))
+                Settings.SelectCategory = Option
+                saveSettings()
+                _G.SelectCategory = Option
+                for i = 1, #List.worldDropdown.listCategory do
+                    if _G.SelectCategory == List.worldDropdown.listCategory[i]] then
+                        SelectWorld:Refresh( List.worldDropdown.WorldList[List.worldDropdown.listCategory[i]], "Select World")
+                    end
+                end
+            end,
+        })
+        
+        SelectWorld = AutoFarm:OldCreateDropdown({  -- Creates Dropdown Menu named Select World
+            Name = "Select World",
+            Options = { "nil" },
+            CurrentOption = "Select World",
+            SectionParent = WorldSelection,
+            MultiSelection = false,  -- If MultiSelections is allowed
+            Callback = function(Option)
+                warn("World Chosen is " .. tostring(Option))
+                Settings.SelectWorld = Option
+                saveSettings()
+                _G.SelectWorld = Option
+                for i = 1, #List.worldDropdown.listWorld do
+                    if _G.SelectWorld == List.worldDropdown.listWorld[i] then
+                        SelectLevel:Refresh( List.worldDropdown.LevelList[List.worldDropdown.listWorld[i], "Select Level")
+                    end
+                end
+            end,
+        })
+    
+        SelectLevel = AutoFarm:OldCreateDropdown({  -- Created Dropdown Menu named Select Level
+            Name = "Select Level",
+            Options = { "nil" },
+            CurrentOption = "Select Level",
+            SectionParent = WorldSelection,
+            MultiSelection = false,  -- If MultiSelections is allowed
+            Callback = function(Option)
+                warn("Level Chosen is " .. tostring(Option))
+                WorldSelection:Set("World Selection - Farming on Map:  " .. tostring(Option))
+                Settings.SelectLevel = Option
+                saveSettings()
+                _G.SelectLevel = Option
+                if _G.SelectLevel == "namek_infinite" or _G.SelectLevel == "aot_infinite" or _G.SelectLevel == "demonslayer_infinite" or _G.SelectLevel == "naruto_infinite" or _G.SelectLevel == "marineford_infinite" or _G.SelectLevel == "tokyoghoul_infinite" or _G.SelectLevel == "hueco_infinite" or _G.SelectLevel == "hxhant_infinite" or _G.SelectLevel == "magnolia_infinite" or _G.SelectLevel == "jjk_infinite" or _G.SelectLevel == "clover_infinite" or _G.SelectLevel == "jojo_infinite" or _G.SelectLevel == "opm_infinite" or _G.SelectLevel == "7ds_infinite"  or _G.SelectLevel == "mha_infinite"  or _G.SelectCategory == "Legend" or _G.SelectCategory == "Raid" then
+                    SelectDifficulty:Refresh( { "Hard" }, "Select Difficutly" )
+                elseif _G.SelectCategory == "Portal" or _G.SelectCategory == "Dungeon" then
+                    SelectDifficulty:Refresh( { "Default" }, "Select Difficulty" )
+                else
+                    SelectDifficulty:Refresh( { "Normal", "Hard" }, "Select Difficutly" )
+                end
+            end,
+        })
+    
+        SelectDifficulty = AutoFarm:OldCreateDropdown({  -- Created Dropdown Menu named Select Difficulty
+            Name = "Select Difficulty",
+            Options = { "nil" },
+            CurrentOption = "Select Difficulty",
+            SectionParent = WorldSelection,
+            MultiSelection = false,  -- If MultiSelections is allowed
+            Callback = function(Option)
+                warn("Difficulty Chosen is " .. tostring(Option))
+                Settings.SelectDifficulty = Option
+                saveSettings()
+            end,
+        })
+    end
+    
+    local function AutoFarmConfigSection()
+        local AutoFarmConfig = AutoFarm:CreateSection("Farming Configuration", false, true)  -- Create Section named Farming Configuration
+        AutoStart = AutoFarm:CreateToggle({  -- Create Auto Farm Toggle Button
+            Name = "Auto Start",
+            Info = "Auto Start",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoFarmConfig,
+            Callback = function(Value)
+                if Value then
+                    if AutoInfinity.CurrentValue then
+                        AutoInfinity:Set(false)
+                    end
+                    if AutoNextInfinity.CurrentValue then
+                        AutoNextInfinity:Set(false)
+                    end
+                    _G.AutoStart = true
+                    else
+                        _G.AutoStart = false
+                end
+            end,
+        })
+        local AutoResultRespond = AutoFarm:CreateSection("Automate Respond after Result", false, true)  -- Create Section named Farming Configuration
+        AutoReplay = AutoFarm:CreateToggle({  -- Create Auto Replay Toggle Button
+            Name = "Auto Replay",
+            Info = "Auto Replay",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoResultRespond,
+            Callback = function(Value)
+                if Value then
+                    if AutoNextStory.CurrentValue then
+                        AutoNextStory:Set(false)
+                    end
+                    if AutoLeave.CurrentValue then
+                        AutoLeave:Set(false)
+                    end
+                    _G.AutoReplay = true
+                    else
+                        _G.AutoReplay = false
+                end
+            end,
+        })
+        AutoNextStory = AutoFarm:CreateToggle({  -- Create Auto Next Story Toggle Button
+            Name = "Auto Next Story",
+            Info = "Auto Next Story",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoResultRespond,
+            Callback = function(Value)
+                if Value then
+                    if AutoReplay.CurrentValue then
+                        AutoReplay:Set(false)
+                    end
+                    if AutoLeave.CurrentValue then
+                        AutoLeave:Set(false)
+                    end
+                    _G.AutoNextStory = true
+                    else
+                        _G.AutoNextStory = false
+                end
+            end,
+        })
+        AutoLeave = AutoFarm:CreateToggle({  -- Create Auto Leave Toggle Button
+            Name = "Auto Leave",
+            Info = "Auto Leave",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoResultRespond,
+            Callback = function(Value)
+                if Value then
+                    if AutoReplay.CurrentValue then
+                        AutoReplay:Set(false)
+                    end
+                    if AutoNextStory.CurrentValue then
+                        AutoNextStory:Set(false)
+                    end
+                    _G.AutoLeave = true
+                    else
+                        _G.AutoLeave = false
+                end
+            end,
+        })
+        local AutoUnitConfig = AutoFarm:CreateSection("Automate Unit Settings", false, true)  -- Create Section named Automate Unit Settings
+        AutoPlace = AutoFarm:CreateToggle({  -- Create Auto Place Unit Toggle Button
+            Name = "Auto Place Unit",
+            Info = "Auto Place Unit",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoUnitConfig,
+            Callback = function(Value)
+            -- The function that takes place when the toggle is pressed
+            -- The variable (Value) is a boolean on whether the toggle is true or false
+            end,
+        })
+        AutoUpgrade = AutoFarm:CreateToggle({  -- Create Auto Upgrade Unit Toggle Button
+            Name = "Auto Upgrade Unit",
+            Info = "Auto Upgrade Unit",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoUnitConfig,
+            Callback = function(Value)
+            -- The function that takes place when the toggle is pressed
+            -- The variable (Value) is a boolean on whether the toggle is true or false
+            end,
+        })
+        AutoAbility = AutoFarm:CreateToggle({  -- Create Auto Use Ability Toggle Button
+            Name = "Auto Use Ability",
+            Info = "Auto Use Ability",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoUnitConfig,
+            Callback = function(Value)
+            -- The function that takes place when the toggle is pressed
+            -- The variable (Value) is a boolean on whether the toggle is true or false
+            end,
+        })
+        AutoSellWave = AutoFarm:CreateToggle({  -- Create Auto Sell at Wave Toggle Button
+            Name = "Auto Sell at Wave",
+            Info = "Auto Sell at Wave",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoUnitConfig,
+            Callback = function(Value)
+                if Value then
+                    if AutoLeaveWave.CurrentValue then
+                        AutoLeaveWave:Set(false)
+                    end
+                    _G.AutoSellWave = true
+                    else
+                        _G.AutoSellWave = false
+                end
+            end,
+        })
+        AutoLeaveWave = AutoFarm:CreateToggle({  -- Create Auto Leave at Wave Toggle Button
+            Name = "Auto Leave at Wave",
+            Info = "Auto Leave at Wave",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = AutoUnitConfig,
+            Callback = function(Value)
+                if Value then
+                    if AutoSellWave.CurrentValue then
+                        AutoSellWave:Set(false)
+                    end
+                    _G.AutoLeaveWave = true
+                    else
+                        _G.AutoLeaveWave = false
+                end
+            end,
+        })
+        local SellLeaveInput = AutoFarm:CreateInput({  -- Create TextBox input named Sell or Leave at Wave
+            Name = "Sell or Leave at Wave",
+            Info = "Sell or Leave at Wave",  -- Speaks for itself, Remove if none.
+            PlaceholderText = Settings.SellLeaveWave or "Value",
+            SectionParent = AutoUnitConfig,
+            NumbersOnly = true,  -- If the user can only type numbers. Remove if none.
+            CharacterLimit = 3,  -- max character limit. Remove if none.
+            RemoveTextAfterFocusLost = false,
+            Callback = function(Text)
+                warn(Text)
+            end,
+        })
+    end
+    
+    local function InfinityCastleSection()
+        local InfinityCastleConfig = AutoFarm:CreateSection("Automate Infinity Castle", false, true)  -- Create Section named Automate Infinity Castle
+        AutoInfinity = AutoFarm:CreateToggle({  -- Create Auto Infinity Castle Toggle Button
+            Name = "Auto Infinity Castle",
+            Info = "Auto Infinity Castle",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = InfinityCastleConfig,
+            Callback = function(Value)
+                if Value then
+                    if AutoStart.CurrentValue then
+                        AutoStart:Set(false)
+                    end
+                    if AutoReplay.CurrentValue then
+                        AutoReplay:Set(false)
+                    end
+                    if AutoNextStory.CurrentValue then
+                        AutoNextStory:Set(false)
+                    end
+                    if AutoLeave.CurrentValue then
+                        AutoLeave:Set(false)
+                    end
+                    if AutoSellWave.CurrentValue then
+                        AutoSellWave:Set(false)
+                    end
+                    if AutoLeaveWave.CurrentValue then
+                        AutoLeaveWave:Set(false)
+                    end
+                    _G.AutoInfinity = true
+                    else
+                        _G.AutoInfinity = false
+                end
+            end,
+        })
+        AutoNextInfinity = AutoFarm:CreateToggle({  -- Create Auto Next Room Infinity Castle Toggle Button
+            Name = "Auto Next Room Infinity Castle",
+            Info = "Auto Next Room Infinity Castle",  -- Speaks for itself, Remove if none.
+            CurrentValue = false,
+            SectionParent = InfinityCastleConfig,
+            Callback = function(Value)
+                if Value then
+                    if AutoStart.CurrentValue then
+                        AutoStart:Set(false)
+                    end
+                    if AutoReplay.CurrentValue then
+                        AutoReplay:Set(false)
+                    end
+                    if AutoNextStory.CurrentValue then
+                        AutoNextStory:Set(false)
+                    end
+                    if AutoLeave.CurrentValue then
+                        AutoLeave:Set(false)
+                    end
+                    if AutoSellWave.CurrentValue then
+                        AutoSellWave:Set(false)
+                    end
+                    if AutoLeaveWave.CurrentValue then
+                        AutoLeaveWave:Set(false)
+                    end
+                    _G.AutoNextInfinity = true
+                    else
+                        _G.AutoNextInfinity = false
+                end
+            end,
+        })
+    end
+    
+    local function ChallengeSection()
+        local ChallengeConfig = AutoFarm:CreateSection("Automate Challenges", false, true)  -- Create Section named Automate Challenges
+        SelectReward = AutoFarm:OldCreateDropdown({  -- Created Dropdown Menu named Select Reward
+            Name = "Select Reward",
+            Options = { "star_fruit_random", "star_remnant", "gems", "gold" },
+            CurrentOption = "Select Reward",
+            SectionParent = ChallengeConfig,
+            MultiSelection = true,  -- If MultiSelections is allowed
+            Callback = function(Option)
+                warn("Difficulty Chosen is " .. tostring(Option))
+                Settings.SelectDifficulty = Option 
+                saveSettings()
+            end,
+        })
+        AutoChallenge = AutoFarm:CreateToggle({  -- Create Auto Challenge Selected Reward Toggle Button
+            Name = "Auto Challenge Selected Reward",
+            Info = "Auto Challenge Selected Reward",
+            CurrentValue = false,
+            SectionParent = ChallengeConfig,
+            Callback = function(Value)
+                
+            end,
+        })
+    end
+    
+    UnitSelectionSection()
+    SetUnitPositionSection()
+    WorldSelectionSection()
+    AutoFarmConfigSection()
+    InfinityCastleSection()
+    ChallengeSection()
+end
+    -- End of Auto Farm Function
+    
+    -- Start of Auto Save Unit Function
+function AutoSaveUnit()
+    
+    local function saveUnit()
+        
+        if Settings.SelectedUnits == nil then  -- Generate Selected Unit Parameters
+            Settings.SelectedUnits = {}
+            for i = 1, 6, 1 do
+                Settings.SelectedUnits["UP" .. i] = "nil"
+            end
+            else
+                for i = 1, 6, 1 do  -- Reset Selected Unit List to nil
+                    Settings.SelectedUnits["UP" .. i] = "nil"
+                end
+        end
+        
+        for i, v in pairs(getgenv().profile_data.equipped_units) do  -- Transfer Equipped Units to Selected Unit List and Save to JSON
+            if v.equipped_slot then
+                Settings.SelectedUnits["UP" .. tostring(v.equipped_slot)] = tostring(v.unit_id) .. " #" .. tostring(v.uuid)
+                print("UP" .. tostring(v.equipped_slot) .. " " .. tostring(v.unit_id) .. " #" .. tostring(v.uuid))
+            end
+        end
+        saveSettings()
+    end
+    
+    local function fetchUnit()
+        getgenv().profile_data = { equipped_units = {} }
+        table.clear(getgenv().profile_data.equipped_units)
+        
+        for i, v in pairs(getgc(true)) do  -- Fetch Unit List
+            if type(v) == "table" and rawget(v, "xp") then
+                wait()
+                table.insert(getgenv().profile_data.equipped_units, v)
+            end
+        end
+        
+        if Settings.SelectedUnits == nil then  -- Generate Selected Unit Parameters
+            Settings.SelectedUnits = {}
+            for i = 1, 6, 1 do
+                Settings.SelectedUnits["UP" .. i] = "nil"
+            end
+        end
+        
+        EquippedList = {}  -- Generate Compare List Parameters
+        table.clear(EquippedList)
+        
+        for i = 1, 6, 1 do
+            EquippedList["UP" .. i] = "nil"
+        end
+        
+        for i, v in pairs(getgenv().profile_data.equipped_units) do  -- Filter Fetched Unit to List Equipped Units Only
+            if v.equipped_slot then
+                EquippedList["UP" .. v.equipped_slot] = tostring(v.unit_id) .. " #" .. tostring(v.uuid)
+            end
+        end
+           
+        for i = 1, 6, 1 do  -- If Equipped Slot in Empty, Put "nil"
+    		if EquippedList["UP" .. i] == nil then
+    			EquippedList["UP" .. i] = "nil"
+    		end
+    	end
+        
+        for i = 1, 6, 1 do  -- Compared Current List to Saved JSON List if not the same then call AutoSave Function
+            if EquippedList["UP" .. i] ~= Settings.SelectedUnits["UP" .. i] then
+                saveUnit()
+            end
+        end
+    end
+    
+    fetchUnit()
+end
+    -- End of Auto Save Unit Function
+
+            
+HomeTab()
+AutoFarmTab()
+InfinityChallengeTab()
