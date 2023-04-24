@@ -3,6 +3,9 @@ local Version = "v2.1.0.b1"
 local Exec = tostring(identifyexecutor())
 local Player = game.Players.LocalPlayer
 local HttpService = game.HttpService
+local UserInputService = game.UserInputService
+local Workspace = game.Workspace
+local mouse = game.Players.LocalPlayer:GetMouse()
 
 local List = HttpService:JSONDecode(game:HttpGet("https://pastebin.com/raw/vT2GWfB6"))
 local Rayfield = loadstring(game:HttpGet("https://pastebin.com/raw/wVf8J5rw"))()
@@ -107,6 +110,10 @@ local function AutoFarmTab()
     
     local function UnitSelectionSection()
         local UnitSelection = AutoFarm:CreateSection("Unit Selection", false, true)  -- Create Section named Unit Selection
+        local UnitSelectionParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Unit Selection Section
+            Title = "Save Unit Lineup Button:",
+            Content = "\n Once Enabled, will automatically Save Current Unit Lineup everytime you change Unit." },
+            UnitSelection )
         local SaveUnitToggle = AutoFarm:CreateToggle({  -- Create Save Unit Toggle Button
             Name = "Auto Save Unit Lineup",
             Info = "Save Current Lineup Automatically",
@@ -130,14 +137,19 @@ local function AutoFarmTab()
     
     local function SetUnitPositionSection()
         local UnitPosition = AutoFarm:CreateSection("Set Position Manually", false, true)  -- Create Section named Set Position Manually
+        local UnitPositionParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Unit Position Section
+            Title = "Instruction:",
+            Content = "\n For Desktop Users, Press Q or R after Button Click to show Horizontal or Vertical Position. \n\n For Mobile Users, do Long Press or Double Tap to show Horizontal or Vertical Position" },
+            UnitPosition )
         local Unit = {}
         for i = 1, 6 do
-            Unit["Unit" .. i] = AutoFarm:CreateButton({  -- Create Set Unit Position Button
+            Unit["UP" .. i] = AutoFarm:CreateButton({  -- Create Set Unit Position Button
                 Name = "Set Unit " .. i .. " Position",
                 Info = "Set Unit " .. i .. " Position",
                 Interact = "Set Position",
                 SectionParent = UnitPosition,
                 Callback = function()
+                    DefaultPosition("UP" .. i )
                 end,
             })
         end
@@ -145,7 +157,11 @@ local function AutoFarmTab()
     
     local function WorldSelectionSection()
         local map = Settings.SelectLevel or "Not Set"
-        local WorldSelection = AutoFarm:CreateSection("World Selection - Farming on Map:  " .. map, false, true)  -- Create Section named World Selection
+        local WorldSelection = AutoFarm:CreateSection("World Selection", false, true)  -- Create Section named World Selection
+        local WorldParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for World Selection Section
+            Title = "Will Automatically Farm on Saved Map",
+            Content = "\n Farming on Map: " .. map },
+            WorldSelection )
         local SelectCategory = AutoFarm:OldCreateDropdown({  -- Creates Dropdown Menu named Select Category
             Name = "Select Category",
             Options = { "Story" , "Legend", "Raid", "Portal", "Dungeon" },
@@ -158,7 +174,7 @@ local function AutoFarmTab()
                 saveSettings()
                 _G.SelectCategory = Option
                 for i = 1, #List.worldDropdown.listCategory do
-                    if _G.SelectCategory == List.worldDropdown.listCategory[i]] then
+                    if _G.SelectCategory == List.worldDropdown.listCategory[i] then
                         SelectWorld:Refresh( List.worldDropdown.WorldList[List.worldDropdown.listCategory[i]], "Select World")
                     end
                 end
@@ -178,7 +194,7 @@ local function AutoFarmTab()
                 _G.SelectWorld = Option
                 for i = 1, #List.worldDropdown.listWorld do
                     if _G.SelectWorld == List.worldDropdown.listWorld[i] then
-                        SelectLevel:Refresh( List.worldDropdown.LevelList[List.worldDropdown.listWorld[i], "Select Level")
+                        SelectLevel:Refresh( List.worldDropdown.LevelList[List.worldDropdown.listWorld[i]], "Select Level")
                     end
                 end
             end,
@@ -192,7 +208,7 @@ local function AutoFarmTab()
             MultiSelection = false,  -- If MultiSelections is allowed
             Callback = function(Option)
                 warn("Level Chosen is " .. tostring(Option))
-                WorldSelection:Set("World Selection - Farming on Map:  " .. tostring(Option))
+                WorldParagraph:Set({ Title = "Will Automatically Farm on Saved Map", Content = "\n Farming on Map: " .. tostring(Option) })
                 Settings.SelectLevel = Option
                 saveSettings()
                 _G.SelectLevel = Option
@@ -222,6 +238,10 @@ local function AutoFarmTab()
     
     local function AutoFarmConfigSection()
         local AutoFarmConfig = AutoFarm:CreateSection("Farming Configuration", false, true)  -- Create Section named Farming Configuration
+        local AutoFarmParagraph = AutoFarm:CreateParagraph({
+            Title = "Information",
+            Content = "\n Toggling Auto Start will Toggle Off Infinity Castle and Challange Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another." },
+            AutoFarmConfig )
         AutoStart = AutoFarm:CreateToggle({  -- Create Auto Farm Toggle Button
             Name = "Auto Start",
             Info = "Auto Start",  -- Speaks for itself, Remove if none.
@@ -241,12 +261,11 @@ local function AutoFarmTab()
                 end
             end,
         })
-        local AutoResultRespond = AutoFarm:CreateSection("Automate Respond after Result", false, true)  -- Create Section named Farming Configuration
         AutoReplay = AutoFarm:CreateToggle({  -- Create Auto Replay Toggle Button
             Name = "Auto Replay",
             Info = "Auto Replay",  -- Speaks for itself, Remove if none.
             CurrentValue = false,
-            SectionParent = AutoResultRespond,
+            SectionParent = AutoFarmConfig,
             Callback = function(Value)
                 if Value then
                     if AutoNextStory.CurrentValue then
@@ -265,7 +284,7 @@ local function AutoFarmTab()
             Name = "Auto Next Story",
             Info = "Auto Next Story",  -- Speaks for itself, Remove if none.
             CurrentValue = false,
-            SectionParent = AutoResultRespond,
+            SectionParent = AutoFarmConfig,
             Callback = function(Value)
                 if Value then
                     if AutoReplay.CurrentValue then
@@ -284,7 +303,7 @@ local function AutoFarmTab()
             Name = "Auto Leave",
             Info = "Auto Leave",  -- Speaks for itself, Remove if none.
             CurrentValue = false,
-            SectionParent = AutoResultRespond,
+            SectionParent = AutoFarmConfig,
             Callback = function(Value)
                 if Value then
                     if AutoReplay.CurrentValue then
@@ -299,7 +318,12 @@ local function AutoFarmTab()
                 end
             end,
         })
+    
         local AutoUnitConfig = AutoFarm:CreateSection("Automate Unit Settings", false, true)  -- Create Section named Automate Unit Settings
+        local AutoUnitParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Auto Unit Config Section
+            Title = "Information",
+            Content = "\n Auto Ability - Will use Ability once Enemy is within Range except Wendy and Erwin. Puchi will use his Ability every Boss Wave. \n\n Toggling Auto Sell at Wave or Leave at Wave will Toggle Off one another. If Wave Value is Empty, automatically Leave or Sell at Wave '50'." },
+            AutoUnitConfig )
         AutoPlace = AutoFarm:CreateToggle({  -- Create Auto Place Unit Toggle Button
             Name = "Auto Place Unit",
             Info = "Auto Place Unit",  -- Speaks for itself, Remove if none.
@@ -378,30 +402,26 @@ local function AutoFarmTab()
     
     local function InfinityCastleSection()
         local InfinityCastleConfig = AutoFarm:CreateSection("Automate Infinity Castle", false, true)  -- Create Section named Automate Infinity Castle
+        local InfinityCastleParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Infinity Castle Section
+            Title = "Information",
+            Content = "\n Toggling Button will Toggle Off Auto Farm Section Button, Sell or Leave at Wave and Challege Section Buttons." },
+            InfinityCastleConfig )
         AutoInfinity = AutoFarm:CreateToggle({  -- Create Auto Infinity Castle Toggle Button
             Name = "Auto Infinity Castle",
             Info = "Auto Infinity Castle",  -- Speaks for itself, Remove if none.
             CurrentValue = false,
             SectionParent = InfinityCastleConfig,
             Callback = function(Value)
+                warn("Auto Infinity Castle is set to " .. tostring(Value))
+                Settings.AutoInfinity = Value
+                saveSettings()
+                checkI = { AutoStart.CurrentValue, AutoReplay.CurrentValue, AutoNextStory.CurrentValue, AutoLeave.CurrentValue, AutoSellWave.CurrentValue, AutoLeaveWave.CurrentValue, AutoChallenge.CurrentValue }
+                changeI = { AutoStart, AutoReplay, AutoNextStory, AutoLeave, AutoSellWave, AutoLeaveWave, AutoChallenge }
                 if Value then
-                    if AutoStart.CurrentValue then
-                        AutoStart:Set(false)
-                    end
-                    if AutoReplay.CurrentValue then
-                        AutoReplay:Set(false)
-                    end
-                    if AutoNextStory.CurrentValue then
-                        AutoNextStory:Set(false)
-                    end
-                    if AutoLeave.CurrentValue then
-                        AutoLeave:Set(false)
-                    end
-                    if AutoSellWave.CurrentValue then
-                        AutoSellWave:Set(false)
-                    end
-                    if AutoLeaveWave.CurrentValue then
-                        AutoLeaveWave:Set(false)
+                    for i = 1, #checkI do
+                        if checkI[i] then
+                            changeI[i]:Set(false)
+                        end
                     end
                     _G.AutoInfinity = true
                     else
@@ -415,24 +435,16 @@ local function AutoFarmTab()
             CurrentValue = false,
             SectionParent = InfinityCastleConfig,
             Callback = function(Value)
+                warn("Auto Next Room Infinity Castle is set to " .. tostring(Value))
+                Settings.AutoNextInfinity = Value
+                saveSettings()
+                checkNI = { AutoStart.CurrentValue, AutoReplay.CurrentValue, AutoNextStory.CurrentValue, AutoLeave.CurrentValue, AutoSellWave.CurrentValue, AutoLeaveWave.CurrentValue, AutoChallenge.CurrentValue }
+                changeNI = { AutoStart, AutoReplay, AutoNextStory, AutoLeave, AutoSellWave, AutoLeaveWave, AutoChallenge }
                 if Value then
-                    if AutoStart.CurrentValue then
-                        AutoStart:Set(false)
-                    end
-                    if AutoReplay.CurrentValue then
-                        AutoReplay:Set(false)
-                    end
-                    if AutoNextStory.CurrentValue then
-                        AutoNextStory:Set(false)
-                    end
-                    if AutoLeave.CurrentValue then
-                        AutoLeave:Set(false)
-                    end
-                    if AutoSellWave.CurrentValue then
-                        AutoSellWave:Set(false)
-                    end
-                    if AutoLeaveWave.CurrentValue then
-                        AutoLeaveWave:Set(false)
+                    for i = 1, #checkNI do
+                        if checkNI[i] then
+                            changeNI[i]:Set(false)
+                        end
                     end
                     _G.AutoNextInfinity = true
                     else
@@ -444,15 +456,21 @@ local function AutoFarmTab()
     
     local function ChallengeSection()
         local ChallengeConfig = AutoFarm:CreateSection("Automate Challenges", false, true)  -- Create Section named Automate Challenges
-        SelectReward = AutoFarm:OldCreateDropdown({  -- Created Dropdown Menu named Select Reward
+        local ChallengeParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Challenge Section
+            Title = "Information",
+            Content = "\n Toggling Button will Toggle Off Auto Farm Section Button, Sell or Leave at Wave and Infinty Castle Section Buttons." },
+            ChallengeConfig )
+        local Reward = {}
+        local SelectReward = AutoFarm:OldCreateDropdown({  -- Created Dropdown Menu named Select Reward
             Name = "Select Reward",
             Options = { "star_fruit_random", "star_remnant", "gems", "gold" },
-            CurrentOption = "Select Reward",
+            CurrentOption = Settings.SelectReward or "Select Reward",
             SectionParent = ChallengeConfig,
             MultiSelection = true,  -- If MultiSelections is allowed
             Callback = function(Option)
+                table.insert(Reward, Option)
                 warn("Difficulty Chosen is " .. tostring(Option))
-                Settings.SelectDifficulty = Option 
+                Settings.SelectReward = Reward
                 saveSettings()
             end,
         })
@@ -462,7 +480,21 @@ local function AutoFarmTab()
             CurrentValue = false,
             SectionParent = ChallengeConfig,
             Callback = function(Value)
-                
+                warn("Auto Challenge is set to " .. tostring(Value))
+                Settings.Challenge = Value
+                saveSettings()
+                checkAC = { AutoStart.CurrentValue, AutoReplay.CurrentValue, AutoNextStory.CurrentValue, AutoLeave.CurrentValue, AutoSellWave.CurrentValue, AutoLeaveWave.CurrentValue, AutoInfinity.CurrentValue, AutoNextInfinity.CurrentValue }
+                changeAC = { AutoStart, AutoReplay, AutoNextStory, AutoLeave, AutoSellWave, AutoLeaveWave, AutoInfinity, AutoNextInfinity }
+                if Value then
+                    for i = 1, #checkAC do
+                        if checkAC[i] then
+                            changeAC[i]:Set(false)
+                        end
+                    end
+                    _G.AutoChallenge = true
+                    else
+                        _G.AutoChallenge = false
+                end
             end,
         })
     end
@@ -476,80 +508,198 @@ local function AutoFarmTab()
 end
     -- End of Auto Farm Function
     
+    -- Start of Button Functions
+    
     -- Start of Auto Save Unit Function
 function AutoSaveUnit()
-    
-    local function saveUnit()
+    if Settings.AutoSaveUnit then
         
-        if Settings.SelectedUnits == nil then  -- Generate Selected Unit Parameters
-            Settings.SelectedUnits = {}
-            for i = 1, 6, 1 do
-                Settings.SelectedUnits["UP" .. i] = "nil"
-            end
-            else
-                for i = 1, 6, 1 do  -- Reset Selected Unit List to nil
+        local function saveUnit()
+            if Settings.SelectedUnits == nil then  -- Generate Selected Unit Parameters
+                Settings.SelectedUnits = {}
+                for i = 1, 6, 1 do
                     Settings.SelectedUnits["UP" .. i] = "nil"
                 end
-        end
-        
-        for i, v in pairs(getgenv().profile_data.equipped_units) do  -- Transfer Equipped Units to Selected Unit List and Save to JSON
-            if v.equipped_slot then
-                Settings.SelectedUnits["UP" .. tostring(v.equipped_slot)] = tostring(v.unit_id) .. " #" .. tostring(v.uuid)
-                print("UP" .. tostring(v.equipped_slot) .. " " .. tostring(v.unit_id) .. " #" .. tostring(v.uuid))
+                else
+                    for i = 1, 6, 1 do  -- Reset Selected Unit List to nil
+                        Settings.SelectedUnits["UP" .. i] = "nil"
+                    end
             end
-        end
-        saveSettings()
-    end
-    
-    local function fetchUnit()
-        getgenv().profile_data = { equipped_units = {} }
-        table.clear(getgenv().profile_data.equipped_units)
-        
-        for i, v in pairs(getgc(true)) do  -- Fetch Unit List
-            if type(v) == "table" and rawget(v, "xp") then
-                wait()
-                table.insert(getgenv().profile_data.equipped_units, v)
+            
+            for i, v in pairs(getgenv().profile_data.equipped_units) do  -- Transfer Equipped Units to Selected Unit List and Save to JSON
+                if v.equipped_slot then
+                    Settings.SelectedUnits["UP" .. tostring(v.equipped_slot)] = tostring(v.unit_id) .. " #" .. tostring(v.uuid)
+                    print("UP" .. tostring(v.equipped_slot) .. " " .. tostring(v.unit_id) .. " #" .. tostring(v.uuid))
+                end
             end
+            saveSettings()
         end
         
-        if Settings.SelectedUnits == nil then  -- Generate Selected Unit Parameters
-            Settings.SelectedUnits = {}
+        local function fetchUnit()
+            getgenv().profile_data = { equipped_units = {} }
+            table.clear(getgenv().profile_data.equipped_units)
+            
+            for i, v in pairs(getgc(true)) do  -- Fetch Unit List
+                if type(v) == "table" and rawget(v, "xp") then
+                    wait()
+                    table.insert(getgenv().profile_data.equipped_units, v)
+                end
+            end
+            
+            if Settings.SelectedUnits == nil then  -- Generate Selected Unit Parameters
+                Settings.SelectedUnits = {}
+                for i = 1, 6, 1 do
+                    Settings.SelectedUnits["UP" .. i] = "nil"
+                end
+            end
+            
+            EquippedList = {}  -- Generate Compare List Parameters
+            table.clear(EquippedList)
+            
             for i = 1, 6, 1 do
-                Settings.SelectedUnits["UP" .. i] = "nil"
+                EquippedList["UP" .. i] = "nil"
+            end
+            
+            for i, v in pairs(getgenv().profile_data.equipped_units) do  -- Filter Fetched Unit to List Equipped Units Only
+                if v.equipped_slot then
+                    EquippedList["UP" .. v.equipped_slot] = tostring(v.unit_id) .. " #" .. tostring(v.uuid)
+                end
+            end
+               
+            for i = 1, 6, 1 do  -- If Equipped Slot in Empty, Put "nil"
+        		if EquippedList["UP" .. i] == nil then
+        			EquippedList["UP" .. i] = "nil"
+        		end
+        	end
+            
+            for i = 1, 6, 1 do  -- Compared Current List to Saved JSON List if not the same then call AutoSave Function
+                if EquippedList["UP" .. i] ~= Settings.SelectedUnits["UP" .. i] then
+                    saveUnit()
+                end
             end
         end
-        
-        EquippedList = {}  -- Generate Compare List Parameters
-        table.clear(EquippedList)
-        
-        for i = 1, 6, 1 do
-            EquippedList["UP" .. i] = "nil"
-        end
-        
-        for i, v in pairs(getgenv().profile_data.equipped_units) do  -- Filter Fetched Unit to List Equipped Units Only
-            if v.equipped_slot then
-                EquippedList["UP" .. v.equipped_slot] = tostring(v.unit_id) .. " #" .. tostring(v.uuid)
-            end
-        end
-           
-        for i = 1, 6, 1 do  -- If Equipped Slot in Empty, Put "nil"
-    		if EquippedList["UP" .. i] == nil then
-    			EquippedList["UP" .. i] = "nil"
-    		end
-    	end
-        
-        for i = 1, 6, 1 do  -- Compared Current List to Saved JSON List if not the same then call AutoSave Function
-            if EquippedList["UP" .. i] ~= Settings.SelectedUnits["UP" .. i] then
-                saveUnit()
-            end
-        end
-    end
-    
     fetchUnit()
+    end
 end
     -- End of Auto Save Unit Function
+    
+    -- Start of Default Position Function
+function DefaultPosition(UnitPos)
+    
+    local raycastParams = RaycastParams.new()  -- Create New Instance
+    raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
+	raycastParams.FilterDescendantsInstances = {Workspace._terrain}
+	
+	_G.SetPosition = true
+	task.wait(0.5)
+	
+	local a = {}
+    for i = 1, 6, 1 do  -- Create Box Particles
+        a["Box" .. i] = Instance.new("Part", game.Workspace)
+        a["Box" .. i].Size = Vector3.new(1, 1, 1)
+        a["Box" .. i].Material = Enum.Material.Neon
+    end
+    
+    local xPos = {}
+    local zPos = {}
+    local rayOrigin = {}
+    local rayDestination = {}
+    local rayDirection = {}
+    local raycastResult = {}
+    
+    if UserInputService.TouchEnabled then
+    	    mobile = true
+    	    else
+    	        mobile = false
+    end
+	
+	if mobile then
+	    
+	    else
+	        Unit[UnitPos]:Set(nil, "Choose Orientation")
+	        warn("Choose Orientation")
+            warn("Press Q for Horizontal")
+            warn("Press R for Vertical")
+        
+	        local function HorizontalPosition(UnitPos)
+    	        warn("Set Coordinates")
+    	        game:GetService("RunService").RenderStepped:Connect(function()
+    	            pcall(function()
+    	                if _G.SetPosition then
+    	                    for i = 1, 6 do
+    	                        xPos["Unit" .. i] = mouse.Hit.Position.X + List.DefaultPosition.HorizontalPosition.xOffSet[i]
+    	                        zPos["Unit" .. i] = mouse.Hit.Position.Z + List.DefaultPosition.HorizontalPosition.zOffSet[i]
+    	                        rayOrigin["Unit" .. i] = CFrame.new(xPos["Unit" .. i], 1000, zPos["Unit" .. i]).p
+    	                        rayDestination["Unit" .. i] = CFrame.new(xPos["Unit" .. i], -500, zPos["Unit" .. i]).p
+    	                        rayDirection["Unit" .. i] = (rayDestination["Unit" .. i] - rayOrigin["Unit" .. i])
+    	                        raycastResult["Unit" .. i] = workspace:Raycast(rayOrigin["Unit" .. i], rayDirection["Unit" .. i], raycastParams)
+    	                        a["Box" .. i].CFrame = CFrame.new(raycastResult["Unit" .. i].Position) * CFrame.Angles(0, -0, -0)
+    	                    end
+    	                end
+    	            end)
+    	        end)
+    	        task.wait(0.3)
+    	        for i = 1, 6 do
+    	            a["Box" .. i ].Anchored = true
+    	            a["Box" .. i].CanCollide = false
+    	        end
+    	        HPosition = mouse.Button1Down:Connect(function()
+    	            HPosition:Disconnect()
+    	            warn("Coordinate Set for " .. UnitPos)
+    	            _G.SetPosition = false
+    	            for i = 1, 6 do
+    	                a["Box" .. i].Transparency = 0
+    	                a["Box" .. i]:Destroy()
+    	            end
+    	        end)
+    	    end
+	    
+	        local function VerticalPosition(UnitPos)
+    	        warn("Set Coordinates")
+    	        game:GetService("RunService").RenderStepped:Connect(function()
+    	            pcall(function()
+    	                if _G.SetPosition then
+    	                    for i = 1, 6 do
+    	                        xPos["Unit" .. i] = mouse.Hit.Position.X + List.DefaultPosition.VerticalPosition.xOffSet[i]
+    	                        zPos["Unit" .. i] = mouse.Hit.Position.Z + List.DefaultPosition.VerticalPosition.zOffSet[i]
+    	                        rayOrigin["Unit" .. i] = CFrame.new(xPos["Unit" .. i], 1000, zPos["Unit" .. i]).p
+    	                        rayDestination["Unit" .. i] = CFrame.new(xPos["Unit" .. i], -500, zPos["Unit" .. i]).p
+    	                        rayDirection["Unit" .. i] = (rayDestination["Unit" .. i] - rayOrigin["Unit" .. i])
+    	                        raycastResult["Unit" .. i] = workspace:Raycast(rayOrigin["Unit" .. i], rayDirection["Unit" .. i], raycastParams)
+    	                        a["Box" .. i].CFrame = CFrame.new(raycastResult["Unit" .. i].Position) * CFrame.Angles(0, -0, -0)
+    	                    end
+    	                end
+    	            end)
+    	        end)
+    	        task.wait(0.3)
+    	        for i = 1, 6 do
+    	            a["Box" .. i ].Anchored = true
+    	            a["Box" .. i].CanCollide = false
+    	        end
+    	        VPosition = mouse.Button1Down:Connect(function()
+    	            VPosition:Disconnect()
+    	            warn("Coordinate Set for " .. UnitPos)
+    	            _G.SetPosition = false
+    	            for i = 1, 6 do
+    	                a["Box" .. i].Transparency = 0
+    	                a["Box" .. i]:Destroy()
+    	            end
+    	        end)
+    	    end
+    	    keytopress = game:GetService("UserInputService").InputBegan:connect(function(inputObject, gameProcessedEvent)
+    	        if inputObject.KeyCode == Enum.KeyCode.Q then
+    	            keytopress:Disconnect()
+    	            HorizontalPosition(UnitPos)
+    	        elseif inputObject.KeyCode == Enum.KeyCode.R then
+	                keytopress:Disconnect()
+	                VerticalPosition(UnitPos)
+    	        end
+    	    end)
+	end
+end
+    -- End of Default Position Function
+    
+    -- End of Button Functions
 
-            
 HomeTab()
 AutoFarmTab()
-InfinityChallengeTab()
