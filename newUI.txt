@@ -4,6 +4,7 @@ local Exec = tostring(identifyexecutor())
 local Player = game.Players.LocalPlayer
 local HttpService = game.HttpService
 local UserInputService = game.UserInputService
+local RunService = game.RunService
 local Workspace = game.Workspace
 local mouse = game.Players.LocalPlayer:GetMouse()
 
@@ -141,7 +142,7 @@ local function AutoFarmTab()
             Title = "Instruction:",
             Content = "\n For Desktop Users, Press Q or R after Button Click to show Horizontal or Vertical Position. \n\n For Mobile Users, do Long Press or Double Tap to show Horizontal or Vertical Position" },
             UnitPosition )
-        local Unit = {}
+        Unit = {}
         for i = 1, 6 do
             Unit["UP" .. i] = AutoFarm:CreateButton({  -- Create Set Unit Position Button
                 Name = "Set Unit " .. i .. " Position",
@@ -508,7 +509,7 @@ local function AutoFarmTab()
 end
     -- End of Auto Farm Function
     
-    -- Start of Button Functions
+    -- Start of Script Functions
     
     -- Start of Auto Save Unit Function
 function AutoSaveUnit()
@@ -583,6 +584,16 @@ function AutoSaveUnit()
 end
     -- End of Auto Save Unit Function
     
+    -- Start of Get Level Data Function
+function GLD()
+    local dataList = {}
+    for i, v in pairs(Workspace._MAP_CONFIG:WaitForChild("GetLevelData"):InvokeServer()) do
+        dataList[i] = v
+    end
+    return dataList
+end
+    -- End of Get Level Data Function
+    
     -- Start of Default Position Function
 function DefaultPosition(UnitPos)
     
@@ -591,13 +602,12 @@ function DefaultPosition(UnitPos)
 	raycastParams.FilterDescendantsInstances = {Workspace._terrain}
 	
 	_G.SetPosition = true
-	task.wait(0.5)
 	
 	local a = {}
-    for i = 1, 6, 1 do  -- Create Box Particles
-        a["Box" .. i] = Instance.new("Part", game.Workspace)
-        a["Box" .. i].Size = Vector3.new(1, 1, 1)
-        a["Box" .. i].Material = Enum.Material.Neon
+	for i = 1, 6, 1 do  -- Create Box Particles
+	    a["Box" .. i] = Instance.new("Part", game.Workspace)
+	    a["Box" .. i].Size = Vector3.new(1, 1, 1)
+	    a["Box" .. i].Material = Enum.Material.Neon
     end
     
     local xPos = {}
@@ -606,24 +616,237 @@ function DefaultPosition(UnitPos)
     local rayDestination = {}
     local rayDirection = {}
     local raycastResult = {}
+
+    local function initMapUnitSettings(unitPrefix, unitCount)
+    	local map = GLD().map
+    	if Settings["UnitConfig_" .. tostring(map)] == nil then
+    	    Settings["UnitConfig_" .. tostring(map)] = { Position = {} }
+    	elseif Settings["UnitConfig_" .. tostring(map)].Position == nil then
+    	    Settings["UnitConfig_" .. tostring(map)].Position = {}
+    	end
+    	for i = 1, unitCount do
+    	    local UnitPos = unitPrefix .. i
+    	    if Settings["UnitConfig_" .. tostring(map)].Position[UnitPos] == nil then
+    	        Settings["UnitConfig_" .. tostring(map)].Position[UnitPos] = {}
+    	    end
+    	end
+    	return map
+    end
+    
+    local function horizontalPosition(UnitPos, a)
+        local coordinates = { x = a.Position.X, y = a.Position.Y, z = a.Position.Z, x2 = a.Position.X + 1.5, z2 = a.Position.Z + 1.5, x3 = a.Position.X - 1.5 }
+        local map = initMapUnitSettings("UP", 6)
+        Settings["UnitConfig_" .. tostring(map)].Position[UnitPos] = coordinates
+        saveSettings()
+    end
+    
+    local function verticalPosition(UnitPos, a)
+        local coordinates = { x = a.Position.X, y = a.Position.Y, z = a.Position.Z, x2 = a.Position.X - 1.5, z2 = a.Position.Z - 1.5, z3 = a.Position.Z + 1.5 }
+        local map = initMapUnitSettings("UP", 6)
+        Settings["UnitConfig_" .. tostring(map)].Position[UnitPos] = coordinates
+        saveSettings()
+    end
     
     if UserInputService.TouchEnabled then
     	    mobile = true
     	    else
     	        mobile = false
     end
-	
+    
 	if mobile then
+	    local BillboardGui = Instance.new("BillboardGui")
+	    local Frame = Instance.new("Frame")
+	    local UIListLayout = Instance.new("UIListLayout")
+	    local Done = Instance.new("TextButton")
+	    local UICorner = Instance.new("UICorner")
+	    local Cancel = Instance.new("TextButton")
+	    local UICorner_2 = Instance.new("UICorner")
+	    
+	    Unit[UnitPos]:Set(nil, "Choose Orientation")
+	    warn("Choose Orientation")
+	    warn("Long Press for Horizontal")
+	    warn("Double Tap for Vertical")
+	    
+	    local function MobilelHorizontalPosition(UnitPos)
+	        Unit[UnitPos]:Set(nil, "Choosing Coordinate")
+	        warn("Set Coordinates")
+	        RunService.RenderStepped:Connect(function()
+	            if _G.SetPosition then
+	                for i = 1, 6 do
+	                    xPos["Unit" .. i] = mouse.Hit.Position.X + List.DefaultPosition.HorizontalPosition.xOffSet[i]
+	                    zPos["Unit" .. i] = mouse.Hit.Position.Z + List.DefaultPosition.HorizontalPosition.zOffSet[i]
+	                    rayOrigin["Unit" .. i] = CFrame.new(xPos["Unit" .. i], 1000, zPos["Unit" .. i]).p
+	                    rayDestination["Unit" .. i] = CFrame.new(xPos["Unit" .. i], -500, zPos["Unit" .. i]).p
+	                    rayDirection["Unit" .. i] = (rayDestination["Unit" .. i] - rayOrigin["Unit" .. i])
+	                    raycastResult["Unit" .. i] = workspace:Raycast(rayOrigin["Unit" .. i], rayDirection["Unit" .. i], raycastParams)
+	                    a["Box" .. i].CFrame = CFrame.new(raycastResult["Unit" .. i].Position) * CFrame.Angles(0, -0, -0)
+	                end
+	            end
+	        end)
+	        task.wait(0.3)
+	        for i = 1, 6 do
+	            a["Box" .. i ].Anchored = true
+	            a["Box" .. i].CanCollide = false
+	        end
+	        BillboardGui.Adornee = a.Box1
+	        BillboardGui.Parent = Player.PlayerGui
+	        BillboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	        BillboardGui.Active = true
+	        BillboardGui.LightInfluence = 1.000
+	        BillboardGui.Size = UDim2.new(7, 0, 3, 0)
+	        BillboardGui.SizeOffset = Vector2.new(0, 1.5)
+	        Frame.Parent = BillboardGui
+	        Frame.BackgroundColor3 = Color3.fromRGB(49, 49, 57)
+	        Frame.BackgroundTransparency = 1.000
+	        Frame.Size = UDim2.new(1, 0, 0.5, 0)
+	        UIListLayout.Parent = Frame
+	        UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+	        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	        UIListLayout.Padding = UDim.new(0.0599999987, 0)
+	        Done.Name = "Done"
+	        Done.Parent = Frame
+	        Done.BackgroundColor3 = Color3.fromRGB(34, 255, 0)
+	        Done.Size = UDim2.new(0.469999999, 0, 1, 0)
+	        Done.Font = Enum.Font.SourceSansBold
+	        Done.Text = "Done"
+	        Done.TextColor3 = Color3.fromRGB(255, 255, 255)
+	        Done.TextScaled = true
+	        Done.TextSize = 1.000
+	        Done.TextWrapped = true
+	        Done.Activated:Connect(function()
+	            Unit[UnitPos]:Set(nil, "Set Position")
+	            warn("Coordinate Set for " .. UnitPos)
+	            _G.SetPosition = false
+	            horizontalPosition(UnitPos, a.Box1)
+	            for i = 1, 6 do
+	                a["Box" .. i].Transparency = 0
+	                a["Box" .. i]:Destroy()
+	            end
+	        end)
+	        
+	        UICorner.CornerRadius = UDim.new(0.119999997, 0)
+	        UICorner.Parent = Done
+	        Cancel.Name = "Cancel"
+	        Cancel.Parent = Frame
+	        Cancel.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
+	        Cancel.Size = UDim2.new(0.469999999, 0, 1, 0)
+	        Cancel.Font = Enum.Font.SourceSansBold
+	        Cancel.Text = "Cancel"
+	        Cancel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	        Cancel.TextScaled = true
+	        Cancel.TextSize = 1.000
+	        Cancel.TextWrapped = true
+	        Cancel.Activated:Connect(function()
+	            Unit[UnitPos]:Set(nil, "Set Position")
+	            warn("Cancel")
+	            _G.SetPosition = false
+	            for i = 1, 6 do
+	                a["Box" .. i].Transparency = 0
+	                a["Box" .. i]:Destroy()
+	            end
+	        end)
+	    end
+
+	    local function MobilelVerticalPosition(UnitPos)
+	        Unit[UnitPos]:Set(nil, "Choosing Coordinate")
+	        warn("Set Coordinates")
+	        RunService.RenderStepped:Connect(function()
+	            if _G.SetPosition then
+	                for i = 1, 6 do
+	                    xPos["Unit" .. i] = mouse.Hit.Position.X + List.DefaultPosition.HorizontalPosition.xOffSet[i]
+	                    zPos["Unit" .. i] = mouse.Hit.Position.Z + List.DefaultPosition.HorizontalPosition.zOffSet[i]
+	                    rayOrigin["Unit" .. i] = CFrame.new(xPos["Unit" .. i], 1000, zPos["Unit" .. i]).p
+	                    rayDestination["Unit" .. i] = CFrame.new(xPos["Unit" .. i], -500, zPos["Unit" .. i]).p
+	                    rayDirection["Unit" .. i] = (rayDestination["Unit" .. i] - rayOrigin["Unit" .. i])
+	                    raycastResult["Unit" .. i] = workspace:Raycast(rayOrigin["Unit" .. i], rayDirection["Unit" .. i], raycastParams)
+	                    a["Box" .. i].CFrame = CFrame.new(raycastResult["Unit" .. i].Position) * CFrame.Angles(0, -0, -0)
+	                end
+	            end
+	        end)
+	        task.wait(0.3)
+	        for i = 1, 6 do
+	            a["Box" .. i ].Anchored = true
+	            a["Box" .. i].CanCollide = false
+	        end
+	        BillboardGui.Adornee = a.Box1
+	        BillboardGui.Parent = Player.PlayerGui
+	        BillboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	        BillboardGui.Active = true
+	        BillboardGui.LightInfluence = 1.000
+	        BillboardGui.Size = UDim2.new(7, 0, 3, 0)
+	        BillboardGui.SizeOffset = Vector2.new(0, 1.5)
+	        Frame.Parent = BillboardGui
+	        Frame.BackgroundColor3 = Color3.fromRGB(49, 49, 57)
+	        Frame.BackgroundTransparency = 1.000
+	        Frame.Size = UDim2.new(1, 0, 0.5, 0)
+	        UIListLayout.Parent = Frame
+	        UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+	        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	        UIListLayout.Padding = UDim.new(0.0599999987, 0)
+	        Done.Name = "Done"
+	        Done.Parent = Frame
+	        Done.BackgroundColor3 = Color3.fromRGB(34, 255, 0)
+	        Done.Size = UDim2.new(0.469999999, 0, 1, 0)
+	        Done.Font = Enum.Font.SourceSansBold
+	        Done.Text = "Done"
+	        Done.TextColor3 = Color3.fromRGB(255, 255, 255)
+	        Done.TextScaled = true
+	        Done.TextSize = 1.000
+	        Done.TextWrapped = true
+	        Done.Activated:Connect(function()
+	            Unit[UnitPos]:Set(nil, "Set Position")
+	            warn("Coordinate Set for " .. UnitPos)
+	            _G.SetPosition = false
+	            horizontalPosition(UnitPos, a.Box1)
+	            for i = 1, 6 do
+	                a["Box" .. i].Transparency = 0
+	                a["Box" .. i]:Destroy()
+	            end
+	        end)
+	        
+	        UICorner.CornerRadius = UDim.new(0.119999997, 0)
+	        UICorner.Parent = Done
+	        Cancel.Name = "Cancel"
+	        Cancel.Parent = Frame
+	        Cancel.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
+	        Cancel.Size = UDim2.new(0.469999999, 0, 1, 0)
+	        Cancel.Font = Enum.Font.SourceSansBold
+	        Cancel.Text = "Cancel"
+	        Cancel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	        Cancel.TextScaled = true
+	        Cancel.TextSize = 1.000
+	        Cancel.TextWrapped = true
+	        Cancel.Activated:Connect(function()
+	            Unit[UnitPos]:Set(nil, "Set Position")
+	            warn("Cancel")
+	            _G.SetPosition = false
+	            for i = 1, 6 do
+	                a["Box" .. i].Transparency = 0
+	                a["Box" .. i]:Destroy()
+	            end
+	        end)
+	    end
+	    
+	    longPress = UserInputService.TouchLongPress:Connect(function()
+	        longPress:Disconnect()
+	        MobileHorizontalPosition()
+	    end)
+	    
+        doubleTap = UserInputService.TouchTap:Connect(function()
+	        doubleTap:Disconnect()
+	        MobileVerticalPosition()
+	    end)
 	    
 	    else
 	        Unit[UnitPos]:Set(nil, "Choose Orientation")
 	        warn("Choose Orientation")
-            warn("Press Q for Horizontal")
-            warn("Press R for Vertical")
-        
+	        warn("Press Q for Horizontal")
+	        warn("Press R for Vertical")
+
 	        local function HorizontalPosition(UnitPos)
+	            Unit[UnitPos]:Set(nil, "Choosing Coordinate")
     	        warn("Set Coordinates")
-    	        game:GetService("RunService").RenderStepped:Connect(function()
+    	        RunService.RenderStepped:Connect(function()
     	            pcall(function()
     	                if _G.SetPosition then
     	                    for i = 1, 6 do
@@ -645,7 +868,9 @@ function DefaultPosition(UnitPos)
     	        end
     	        HPosition = mouse.Button1Down:Connect(function()
     	            HPosition:Disconnect()
+    	            Unit[UnitPos]:Set(nil, "Set Position")
     	            warn("Coordinate Set for " .. UnitPos)
+    	            horizontalPosition(UnitPos, a.Box1)
     	            _G.SetPosition = false
     	            for i = 1, 6 do
     	                a["Box" .. i].Transparency = 0
@@ -655,8 +880,9 @@ function DefaultPosition(UnitPos)
     	    end
 	    
 	        local function VerticalPosition(UnitPos)
+	            Unit[UnitPos]:Set(nil, "Choosing Coordinate")
     	        warn("Set Coordinates")
-    	        game:GetService("RunService").RenderStepped:Connect(function()
+    	        RunService.RenderStepped:Connect(function()
     	            pcall(function()
     	                if _G.SetPosition then
     	                    for i = 1, 6 do
@@ -678,7 +904,9 @@ function DefaultPosition(UnitPos)
     	        end
     	        VPosition = mouse.Button1Down:Connect(function()
     	            VPosition:Disconnect()
+    	            Unit[UnitPos]:Set(nil, "Set Position")
     	            warn("Coordinate Set for " .. UnitPos)
+    	            verticalPosition(UnitPos, a.Box1)
     	            _G.SetPosition = false
     	            for i = 1, 6 do
     	                a["Box" .. i].Transparency = 0
@@ -686,7 +914,8 @@ function DefaultPosition(UnitPos)
     	            end
     	        end)
     	    end
-    	    keytopress = game:GetService("UserInputService").InputBegan:connect(function(inputObject, gameProcessedEvent)
+    	    
+    	    keytopress = UserInputService.InputBegan:connect(function(inputObject, gameProcessedEvent)
     	        if inputObject.KeyCode == Enum.KeyCode.Q then
     	            keytopress:Disconnect()
     	            HorizontalPosition(UnitPos)
@@ -699,7 +928,7 @@ function DefaultPosition(UnitPos)
 end
     -- End of Default Position Function
     
-    -- End of Button Functions
+    -- End of Script Functions
 
 HomeTab()
 AutoFarmTab()
