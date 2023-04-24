@@ -1,4 +1,3 @@
-
 local Version = "v2.1.0.b1"
 local Exec = tostring(identifyexecutor())
 local Player = game.Players.LocalPlayer
@@ -6,6 +5,8 @@ local HttpService = game.HttpService
 local UserInputService = game.UserInputService
 local RunService = game.RunService
 local Workspace = game.Workspace
+local PlaceId = game.PlaceId
+local GameId = 8304191830
 local mouse = game.Players.LocalPlayer:GetMouse()
 
 local List = HttpService:JSONDecode(game:HttpGet("https://pastebin.com/raw/vT2GWfB6"))
@@ -140,7 +141,7 @@ local function AutoFarmTab()
         local UnitPosition = AutoFarm:CreateSection("Set Position Manually", false, true)  -- Create Section named Set Position Manually
         local UnitPositionParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Unit Position Section
             Title = "Instruction:",
-            Content = "\n For Desktop Users, Press Q or R after Button Click to show Horizontal or Vertical Position. \n\n For Mobile Users, do Long Press or Double Tap to show Horizontal or Vertical Position" },
+            Content = "\n For Desktop Users, Press Q or R after Button Click to show Horizontal or Vertical Position. \n\n For Mobile Users, do Long Press [ 2 seconds ] after Button Click to Save Coordinates." },
             UnitPosition )
         Unit = {}
         for i = 1, 6 do
@@ -241,7 +242,7 @@ local function AutoFarmTab()
         local AutoFarmConfig = AutoFarm:CreateSection("Farming Configuration", false, true)  -- Create Section named Farming Configuration
         local AutoFarmParagraph = AutoFarm:CreateParagraph({
             Title = "Information",
-            Content = "\n Toggling Auto Start will Toggle Off Infinity Castle and Challange Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another." },
+            Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another." },
             AutoFarmConfig )
         AutoStart = AutoFarm:CreateToggle({  -- Create Auto Farm Toggle Button
             Name = "Auto Start",
@@ -323,7 +324,7 @@ local function AutoFarmTab()
         local AutoUnitConfig = AutoFarm:CreateSection("Automate Unit Settings", false, true)  -- Create Section named Automate Unit Settings
         local AutoUnitParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Auto Unit Config Section
             Title = "Information",
-            Content = "\n Auto Ability - Will use Ability once Enemy is within Range except Wendy and Erwin. Puchi will use his Ability every Boss Wave. \n\n Toggling Auto Sell at Wave or Leave at Wave will Toggle Off one another. If Wave Value is Empty, automatically Leave or Sell at Wave '50'." },
+            Content = "\n Auto Ability - Will use Ability once Enemy is within Range except Wendy and Erwin. Puchi will use his Ability every Boss Wave. \n\n Toggling Auto Sell at Wave or Leave at Wave will Toggle Off one another. If Wave Value is Empty, automatically Sell or Leave at Wave '50'." },
             AutoUnitConfig )
         AutoPlace = AutoFarm:CreateToggle({  -- Create Auto Place Unit Toggle Button
             Name = "Auto Place Unit",
@@ -405,7 +406,7 @@ local function AutoFarmTab()
         local InfinityCastleConfig = AutoFarm:CreateSection("Automate Infinity Castle", false, true)  -- Create Section named Automate Infinity Castle
         local InfinityCastleParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Infinity Castle Section
             Title = "Information",
-            Content = "\n Toggling Button will Toggle Off Auto Farm Section Button, Sell or Leave at Wave and Challege Section Buttons." },
+            Content = "\n Toggling Button will Toggle Off Auto Farm Section Buttons, Sell or Leave at Wave Button and Challege Section Buttons." },
             InfinityCastleConfig )
         AutoInfinity = AutoFarm:CreateToggle({  -- Create Auto Infinity Castle Toggle Button
             Name = "Auto Infinity Castle",
@@ -459,7 +460,7 @@ local function AutoFarmTab()
         local ChallengeConfig = AutoFarm:CreateSection("Automate Challenges", false, true)  -- Create Section named Automate Challenges
         local ChallengeParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for Challenge Section
             Title = "Information",
-            Content = "\n Toggling Button will Toggle Off Auto Farm Section Button, Sell or Leave at Wave and Infinty Castle Section Buttons." },
+            Content = "\n Toggling Button will Toggle Off Auto Farm Section Buttons, Sell or Leave at Wave Button and Infinty Castle Section Buttons." },
             ChallengeConfig )
         local Reward = {}
         local SelectReward = AutoFarm:OldCreateDropdown({  -- Created Dropdown Menu named Select Reward
@@ -500,12 +501,19 @@ local function AutoFarmTab()
         })
     end
     
-    UnitSelectionSection()
-    SetUnitPositionSection()
-    WorldSelectionSection()
-    AutoFarmConfigSection()
-    InfinityCastleSection()
-    ChallengeSection()
+    if PlaceId ~= GameId then  -- Load UI based on Place ID
+        SetUnitPositionSection()
+        WorldSelectionSection()
+        AutoFarmConfigSection()
+        InfinityCastleSection()
+        ChallengeSection()
+        else
+            UnitSelectionSection()
+            WorldSelectionSection()
+            AutoFarmConfigSection()
+            InfinityCastleSection()
+            ChallengeSection()
+    end
 end
     -- End of Auto Farm Function
     
@@ -617,7 +625,7 @@ function DefaultPosition(UnitPos)
     local rayDirection = {}
     local raycastResult = {}
 
-    local function initMapUnitSettings(unitPrefix, unitCount)
+    local function initMapUnitSettings(unitPrefix, unitCount)  -- Create Map Index for Current Map
     	local map = GLD().map
     	if Settings["UnitConfig_" .. tostring(map)] == nil then
     	    Settings["UnitConfig_" .. tostring(map)] = { Position = {} }
@@ -633,44 +641,32 @@ function DefaultPosition(UnitPos)
     	return map
     end
     
-    local function horizontalPosition(UnitPos, a)
+    local function horizontalPosition(UnitPos, a)  -- Save Position for Hotizontal Orientation
         local coordinates = { x = a.Position.X, y = a.Position.Y, z = a.Position.Z, x2 = a.Position.X + 1.5, z2 = a.Position.Z + 1.5, x3 = a.Position.X - 1.5 }
         local map = initMapUnitSettings("UP", 6)
         Settings["UnitConfig_" .. tostring(map)].Position[UnitPos] = coordinates
         saveSettings()
     end
     
-    local function verticalPosition(UnitPos, a)
+    local function verticalPosition(UnitPos, a)  -- Save Position for Vertical Orientation
         local coordinates = { x = a.Position.X, y = a.Position.Y, z = a.Position.Z, x2 = a.Position.X - 1.5, z2 = a.Position.Z - 1.5, z3 = a.Position.Z + 1.5 }
         local map = initMapUnitSettings("UP", 6)
         Settings["UnitConfig_" .. tostring(map)].Position[UnitPos] = coordinates
         saveSettings()
     end
     
-    if UserInputService.TouchEnabled then
+    if UserInputService.TouchEnabled then  -- Check if Mobile or Desktop
     	    mobile = true
     	    else
     	        mobile = false
     end
     
 	if mobile then
-	    local BillboardGui = Instance.new("BillboardGui")
-	    local Frame = Instance.new("Frame")
-	    local UIListLayout = Instance.new("UIListLayout")
-	    local Done = Instance.new("TextButton")
-	    local UICorner = Instance.new("UICorner")
-	    local Cancel = Instance.new("TextButton")
-	    local UICorner_2 = Instance.new("UICorner")
 	    
-	    Unit[UnitPos]:Set(nil, "Choose Orientation")
-	    warn("Choose Orientation")
-	    warn("Long Press for Horizontal")
-	    warn("Double Tap for Vertical")
-	    
-	    local function MobilelHorizontalPosition(UnitPos)
+	    local function MobilePosition(UnitPos)
 	        Unit[UnitPos]:Set(nil, "Choosing Coordinate")
 	        warn("Set Coordinates")
-	        RunService.RenderStepped:Connect(function()
+	        RunService.RenderStepped:Connect(function()  -- Render Boxes to Workspace
 	            if _G.SetPosition then
 	                for i = 1, 6 do
 	                    xPos["Unit" .. i] = mouse.Hit.Position.X + List.DefaultPosition.HorizontalPosition.xOffSet[i]
@@ -688,32 +684,8 @@ function DefaultPosition(UnitPos)
 	            a["Box" .. i ].Anchored = true
 	            a["Box" .. i].CanCollide = false
 	        end
-	        BillboardGui.Adornee = a.Box1
-	        BillboardGui.Parent = Player.PlayerGui
-	        BillboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	        BillboardGui.Active = true
-	        BillboardGui.LightInfluence = 1.000
-	        BillboardGui.Size = UDim2.new(7, 0, 3, 0)
-	        BillboardGui.SizeOffset = Vector2.new(0, 1.5)
-	        Frame.Parent = BillboardGui
-	        Frame.BackgroundColor3 = Color3.fromRGB(49, 49, 57)
-	        Frame.BackgroundTransparency = 1.000
-	        Frame.Size = UDim2.new(1, 0, 0.5, 0)
-	        UIListLayout.Parent = Frame
-	        UIListLayout.FillDirection = Enum.FillDirection.Horizontal
-	        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	        UIListLayout.Padding = UDim.new(0.0599999987, 0)
-	        Done.Name = "Done"
-	        Done.Parent = Frame
-	        Done.BackgroundColor3 = Color3.fromRGB(34, 255, 0)
-	        Done.Size = UDim2.new(0.469999999, 0, 1, 0)
-	        Done.Font = Enum.Font.SourceSansBold
-	        Done.Text = "Done"
-	        Done.TextColor3 = Color3.fromRGB(255, 255, 255)
-	        Done.TextScaled = true
-	        Done.TextSize = 1.000
-	        Done.TextWrapped = true
-	        Done.Activated:Connect(function()
+	        touchLongPress = UserInputService.TouchLongPress:Connect(function()  -- Long Press to Save Coordinate and Destroy Render
+	            touchLongPress:Disconnect()
 	            Unit[UnitPos]:Set(nil, "Set Position")
 	            warn("Coordinate Set for " .. UnitPos)
 	            _G.SetPosition = false
@@ -722,120 +694,10 @@ function DefaultPosition(UnitPos)
 	                a["Box" .. i].Transparency = 0
 	                a["Box" .. i]:Destroy()
 	            end
-	        end)
-	        
-	        UICorner.CornerRadius = UDim.new(0.119999997, 0)
-	        UICorner.Parent = Done
-	        Cancel.Name = "Cancel"
-	        Cancel.Parent = Frame
-	        Cancel.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
-	        Cancel.Size = UDim2.new(0.469999999, 0, 1, 0)
-	        Cancel.Font = Enum.Font.SourceSansBold
-	        Cancel.Text = "Cancel"
-	        Cancel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	        Cancel.TextScaled = true
-	        Cancel.TextSize = 1.000
-	        Cancel.TextWrapped = true
-	        Cancel.Activated:Connect(function()
-	            Unit[UnitPos]:Set(nil, "Set Position")
-	            warn("Cancel")
-	            _G.SetPosition = false
-	            for i = 1, 6 do
-	                a["Box" .. i].Transparency = 0
-	                a["Box" .. i]:Destroy()
-	            end
-	        end)
-	    end
-
-	    local function MobilelVerticalPosition(UnitPos)
-	        Unit[UnitPos]:Set(nil, "Choosing Coordinate")
-	        warn("Set Coordinates")
-	        RunService.RenderStepped:Connect(function()
-	            if _G.SetPosition then
-	                for i = 1, 6 do
-	                    xPos["Unit" .. i] = mouse.Hit.Position.X + List.DefaultPosition.HorizontalPosition.xOffSet[i]
-	                    zPos["Unit" .. i] = mouse.Hit.Position.Z + List.DefaultPosition.HorizontalPosition.zOffSet[i]
-	                    rayOrigin["Unit" .. i] = CFrame.new(xPos["Unit" .. i], 1000, zPos["Unit" .. i]).p
-	                    rayDestination["Unit" .. i] = CFrame.new(xPos["Unit" .. i], -500, zPos["Unit" .. i]).p
-	                    rayDirection["Unit" .. i] = (rayDestination["Unit" .. i] - rayOrigin["Unit" .. i])
-	                    raycastResult["Unit" .. i] = workspace:Raycast(rayOrigin["Unit" .. i], rayDirection["Unit" .. i], raycastParams)
-	                    a["Box" .. i].CFrame = CFrame.new(raycastResult["Unit" .. i].Position) * CFrame.Angles(0, -0, -0)
-	                end
-	            end
-	        end)
-	        task.wait(0.3)
-	        for i = 1, 6 do
-	            a["Box" .. i ].Anchored = true
-	            a["Box" .. i].CanCollide = false
-	        end
-	        BillboardGui.Adornee = a.Box1
-	        BillboardGui.Parent = Player.PlayerGui
-	        BillboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	        BillboardGui.Active = true
-	        BillboardGui.LightInfluence = 1.000
-	        BillboardGui.Size = UDim2.new(7, 0, 3, 0)
-	        BillboardGui.SizeOffset = Vector2.new(0, 1.5)
-	        Frame.Parent = BillboardGui
-	        Frame.BackgroundColor3 = Color3.fromRGB(49, 49, 57)
-	        Frame.BackgroundTransparency = 1.000
-	        Frame.Size = UDim2.new(1, 0, 0.5, 0)
-	        UIListLayout.Parent = Frame
-	        UIListLayout.FillDirection = Enum.FillDirection.Horizontal
-	        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	        UIListLayout.Padding = UDim.new(0.0599999987, 0)
-	        Done.Name = "Done"
-	        Done.Parent = Frame
-	        Done.BackgroundColor3 = Color3.fromRGB(34, 255, 0)
-	        Done.Size = UDim2.new(0.469999999, 0, 1, 0)
-	        Done.Font = Enum.Font.SourceSansBold
-	        Done.Text = "Done"
-	        Done.TextColor3 = Color3.fromRGB(255, 255, 255)
-	        Done.TextScaled = true
-	        Done.TextSize = 1.000
-	        Done.TextWrapped = true
-	        Done.Activated:Connect(function()
-	            Unit[UnitPos]:Set(nil, "Set Position")
-	            warn("Coordinate Set for " .. UnitPos)
-	            _G.SetPosition = false
-	            horizontalPosition(UnitPos, a.Box1)
-	            for i = 1, 6 do
-	                a["Box" .. i].Transparency = 0
-	                a["Box" .. i]:Destroy()
-	            end
-	        end)
-	        
-	        UICorner.CornerRadius = UDim.new(0.119999997, 0)
-	        UICorner.Parent = Done
-	        Cancel.Name = "Cancel"
-	        Cancel.Parent = Frame
-	        Cancel.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
-	        Cancel.Size = UDim2.new(0.469999999, 0, 1, 0)
-	        Cancel.Font = Enum.Font.SourceSansBold
-	        Cancel.Text = "Cancel"
-	        Cancel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	        Cancel.TextScaled = true
-	        Cancel.TextSize = 1.000
-	        Cancel.TextWrapped = true
-	        Cancel.Activated:Connect(function()
-	            Unit[UnitPos]:Set(nil, "Set Position")
-	            warn("Cancel")
-	            _G.SetPosition = false
-	            for i = 1, 6 do
-	                a["Box" .. i].Transparency = 0
-	                a["Box" .. i]:Destroy()
-	            end
-	        end)
+	       end)
 	    end
 	    
-	    longPress = UserInputService.TouchLongPress:Connect(function()
-	        longPress:Disconnect()
-	        MobileHorizontalPosition()
-	    end)
-	    
-        doubleTap = UserInputService.TouchTap:Connect(function()
-	        doubleTap:Disconnect()
-	        MobileVerticalPosition()
-	    end)
+	    MobilePosition(UnitPos)
 	    
 	    else
 	        Unit[UnitPos]:Set(nil, "Choose Orientation")
@@ -846,7 +708,7 @@ function DefaultPosition(UnitPos)
 	        local function HorizontalPosition(UnitPos)
 	            Unit[UnitPos]:Set(nil, "Choosing Coordinate")
     	        warn("Set Coordinates")
-    	        RunService.RenderStepped:Connect(function()
+    	        RunService.RenderStepped:Connect(function()  -- Render Boxes to Workspace
     	            pcall(function()
     	                if _G.SetPosition then
     	                    for i = 1, 6 do
@@ -866,7 +728,7 @@ function DefaultPosition(UnitPos)
     	            a["Box" .. i ].Anchored = true
     	            a["Box" .. i].CanCollide = false
     	        end
-    	        HPosition = mouse.Button1Down:Connect(function()
+    	        HPosition = mouse.Button1Down:Connect(function()  -- Mouse Button 1 to Save Coordinates and Destroy Render
     	            HPosition:Disconnect()
     	            Unit[UnitPos]:Set(nil, "Set Position")
     	            warn("Coordinate Set for " .. UnitPos)
@@ -882,7 +744,7 @@ function DefaultPosition(UnitPos)
 	        local function VerticalPosition(UnitPos)
 	            Unit[UnitPos]:Set(nil, "Choosing Coordinate")
     	        warn("Set Coordinates")
-    	        RunService.RenderStepped:Connect(function()
+    	        RunService.RenderStepped:Connect(function()  -- Render Boxes to Workspace
     	            pcall(function()
     	                if _G.SetPosition then
     	                    for i = 1, 6 do
@@ -902,7 +764,7 @@ function DefaultPosition(UnitPos)
     	            a["Box" .. i ].Anchored = true
     	            a["Box" .. i].CanCollide = false
     	        end
-    	        VPosition = mouse.Button1Down:Connect(function()
+    	        VPosition = mouse.Button1Down:Connect(function()  -- Mouse Button 1 to Save Coordinates and Destroy Render
     	            VPosition:Disconnect()
     	            Unit[UnitPos]:Set(nil, "Set Position")
     	            warn("Coordinate Set for " .. UnitPos)
@@ -915,7 +777,7 @@ function DefaultPosition(UnitPos)
     	        end)
     	    end
     	    
-    	    keytopress = UserInputService.InputBegan:connect(function(inputObject, gameProcessedEvent)
+    	    keytopress = UserInputService.InputBegan:connect(function(inputObject, gameProcessedEvent)  -- Check if Button Press is Q or R
     	        if inputObject.KeyCode == Enum.KeyCode.Q then
     	            keytopress:Disconnect()
     	            HorizontalPosition(UnitPos)
