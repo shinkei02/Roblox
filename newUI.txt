@@ -1,14 +1,20 @@
+  -- Start of Local Variables
 local Version = "v2.1.0.b1"
 local Exec = tostring(identifyexecutor())
-local Player = game.Players.LocalPlayer
-local HttpService = game.HttpService
-local UserInputService = game.UserInputService
-local RunService = game.RunService
 local Workspace = game.Workspace
+local HttpService = game.HttpService
+local RunService = game.RunService
+local Player = game.Players.LocalPlayer
+local UserInputService = game.UserInputService
+local Replicated = game.ReplicatedStorage
+local Endpoint = game.ReplicatedStorage.endpoints.client_to_server
 local PlaceId = game.PlaceId
 local GameId = 8304191830
 local mouse = game.Players.LocalPlayer:GetMouse()
-
+local roomChecked = false
+local Teleport = true
+  -- End of Local Variables
+  
 local List = HttpService:JSONDecode(game:HttpGet("https://pastebin.com/raw/vT2GWfB6"))
 local Rayfield = loadstring(game:HttpGet("https://pastebin.com/raw/wVf8J5rw"))()
 
@@ -18,16 +24,17 @@ pN = Player.Name .. '_AnimeAdventures.json'
 
 Settings = {}
 function saveSettings()
-    if not isfolder(fN) then
+    if not isfolder(fN) then  -- Check if Folder is Found
         makefolder(fN)
     end
     writefile(fN .. '/' .. pN, HttpService:JSONEncode(Settings))
     Settings = ReadSetting()
     warn("Settings Saved!")
 end
+
 function ReadSetting()
     local s, e = pcall(function()
-        if not isfolder(fN) then
+        if not isfolder(fN) then  -- Check if Folder is Found
             makefolder(fN)
         end
         return HttpService:JSONDecode(readfile(fN .. '/' .. pN))
@@ -158,7 +165,12 @@ local function AutoFarmTab()
     end
     
     local function WorldSelectionSection()
-        local map = Settings.SelectLevel or "Not Set"
+        local map;
+        if Settings.SelectLevel == "" or Settings.SelectLevel == nil then
+            map = "Not Set"
+            else
+                map = Settings.SelectLevel
+        end
         local WorldSelection = AutoFarm:CreateSection("World Selection", false, true)  -- Create Section named World Selection
         local WorldParagraph = AutoFarm:CreateParagraph({  -- Create Paragraph for World Selection Section
             Title = "Will Automatically Farm on Saved Map",
@@ -171,15 +183,22 @@ local function AutoFarmTab()
             SectionParent = WorldSelection,
             MultiSelection = false,  -- If MultiSelections is allowed
             Callback = function(Option)
-                warn("Category Chosen is " .. tostring(Option))
                 Settings.SelectCategory = Option
+                Settings.SelectWorld = ""
+                Settings.SelectLevel = ""
+                Settings.SelectDifficulty = ""
                 saveSettings()
                 _G.SelectCategory = Option
+                if AutoStart.CurrentValue then
+                    AutoStart:Set(false)
+                end
                 for i = 1, #List.worldDropdown.listCategory do
                     if _G.SelectCategory == List.worldDropdown.listCategory[i] then
                         SelectWorld:Refresh( List.worldDropdown.WorldList[List.worldDropdown.listCategory[i]], "Select World")
                     end
                 end
+                SelectLevel:Refresh( { "nil" }, "Select Level" )
+                SelectDifficulty:Refresh( { "nil" }, "Select Level" )
             end,
         })
         
@@ -239,27 +258,37 @@ local function AutoFarmTab()
     end
     
     local function AutoFarmConfigSection()
+        local autoFarm;
+        if Settings.AutoFarm then
+            autoFarm = "Enabled"
+            else
+                autoFarm = "Not Enabled"
+        end
         local AutoFarmConfig = AutoFarm:CreateSection("Farming Configuration", false, true)  -- Create Section named Farming Configuration
-        local AutoFarmParagraph = AutoFarm:CreateParagraph({
+        AutoFarmParagraph = AutoFarm:CreateParagraph({
             Title = "Information",
-            Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another." },
+            Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another. \n\n Auto Farm is: " .. autoFarm },
             AutoFarmConfig )
         AutoStart = AutoFarm:CreateToggle({  -- Create Auto Farm Toggle Button
             Name = "Auto Start",
             Info = "Auto Start",  -- Speaks for itself, Remove if none.
-            CurrentValue = false,
+            CurrentValue = Settings.AutoStart or false,
             SectionParent = AutoFarmConfig,
             Callback = function(Value)
+                warn("Auto Start is set to " .. tostring(Value))
+                Settings.AutoStart = Value
+                saveSettings()
+                checkAF = { AutoInfinity.CurrentValue, AutoNextInfinity.CurrentValue, AutoChallenge.CurrentValue }
+                changeAF = { AutoInfinity, AutoNextInfinity, AutoChallenge }
                 if Value then
-                    if AutoInfinity.CurrentValue then
-                        AutoInfinity:Set(false)
+                    for i = 1, #checkAF do
+                        if checkAF[i] then
+                            changeAF[i]:Set(false)
+                        end
                     end
-                    if AutoNextInfinity.CurrentValue then
-                        AutoNextInfinity:Set(false)
-                    end
-                    _G.AutoStart = true
+                    startFarming()
                     else
-                        _G.AutoStart = false
+                        Settings.AutoStart = false
                 end
             end,
         })
@@ -790,7 +819,109 @@ function DefaultPosition(UnitPos)
 end
     -- End of Default Position Function
     
+    -- Start of Auto Farming Function
+function startFarming()
+    
+    local function checkStoryLegend()
+        if roomChecked then
+            for i, v in pairs(Workspace._LOBBIES.Story[StoryLegendDoor]:getChildren()) do
+                if v.Name == "Owner" and v.Value == nil then
+                    local StoryLegendArgs = { [1] = tostring(v.Parent.Name) }
+                    local StoryLegendDoorArgs = { [1] = tostring(v.Parent.Name), [2] = Settings.SelectLevel, [3] = true, [4] = Settings.SelectDifficulty }
+                    Endpoint.request_join_lobby:InvokeServer(unpack(StoryLegendArgs))
+                    task.wait(0.3)
+                    Endpoint.request_lock_level:InvokeServer(unpack(StoryLegendDoorArgs))
+                    task.wait(0.3)
+                    Endpoint.request_start_game:InvokeServer(unpack(StoryLegendArgs))
+                    break
+                end
+            end
+            task.wait(0.3)
+            if tostring(Workspace._LOBBIES.Story[StoryLegendDoor].Owner.Value) == tostring(Player.Name) then
+                if Workspace._LOBBIES.Story[StoryLegendDoor].Teleporting.Value == true then
+                    Teleport = false
+                    AutoFarmParagraph:Set({ Title = "Information", Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another. \n\n Auto Farm is Teleporting to Map: " .. Settings.SelectLevel })
+                    else
+                        Teleport = true
+                end
+            end
+        else
+            AutoFarmParagraph:Set({ Title = "Information", Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another. \n\n Auto Farm is Checking for an Available Room" })
+            local n = math.random(1, 11)
+            if Workspace._LOBBIES.Story[List.PortalDoors.StoryLegend[n]].Teleporting.Value ~= true then
+                StoryLegendDoor = List.PortalDoors.StoryLegend[n]
+                roomChecked = true
+                else
+                    return
+            end
+        end
+    end
+
+    local function checkRaid()
+        if roomChecked then
+            for i, v in pairs(Workspace._RAID.Raid[RaidDoor]:getChildren()) do
+                if v.Name == "Owner" and v.Value == nil then
+                    local StoryLegendArgs = { [1] = tostring(v.Parent.Name) }
+                    local StoryLegendDoorArgs = { [1] = tostring(v.Parent.Name), [2] = Settings.SelectLevel, [3] = true, [4] = Settings.SelectDifficulty }
+                    Endpoint.request_join_lobby:InvokeServer(unpack(StoryLegendArgs))
+                    task.wait(0.3)
+                    Endpoint.request_lock_level:InvokeServer(unpack(StoryLegendDoorArgs))
+                    task.wait(0.3)
+                    Endpoint.request_start_game:InvokeServer(unpack(StoryLegendArgs))
+                    break
+                end
+            end
+            task.wait(0.3)
+            if tostring(Workspace._RAID.Raid[RaidDoor].Owner.Value) == tostring(Player.Name) then
+                if Workspace._RAID.Raid[RaidDoor].Teleporting.Value == true then
+                    Teleport = false
+                    AutoFarmParagraph:Set({ Title = "Information", Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another. \n\n Auto Farm is Teleporting to Map: " .. Settings.SelectLevel })
+                    else
+                        Teleport = true
+                end
+            end
+        else
+            AutoFarmParagraph:Set({ Title = "Information", Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another. \n\n Auto Farm is Checking for an Available Room" })
+            local n = math.random(1, 11)
+            if Workspace._RAID.Raid[List.PortalDoors.Raid[n]].Teleporting.Value ~= true then
+                RaidDoor = List.PortalDoors.Raid[n]
+                roomChecked = true
+                else
+                    return
+            end
+        end
+    end
+    if PlaceId == GameId then
+        if Settings.AutoStart and Teleport then
+            while Settings.AutoStart do
+                if Settings.SelectDifficulty == "" or Settings.SelectDifficulty == nil then
+                    AutoStart:Set(false)
+                    AutoFarmParagraph:Set({ Title = "Information", Content = "\n Toggling Auto Start will Toggle Off Infinity Castle Section and Challange Section Buttons. \n\n Toggling More than 1 Result Game Respond will Toggle Off one another. \n\n Auto Farm is: Set World Selection First" })
+                    else
+                        if Settings.SelectCategory == "Story" or Settings.SelectCategory == "Legend" then
+                            task.wait(1)
+                            checkStoryLegend()
+                        elseif Settings.SelectCategory == "Raid" then
+                            task.wait(1)
+                            checkRaid()
+                        elseif Settings.SelectCategory == "Portal" then
+                            task.wait(1)
+                            checkCheck()
+                        elseif Settings.SelectCategory == "Dungeon" then
+                            task.wait(1)
+                            checkDungeon()
+                        end
+                end
+            end
+            else
+                return
+        end
+    end
+end
+    -- End of Auto Farming Function
+    
     -- End of Script Functions
 
 HomeTab()
 AutoFarmTab()
+startFarming()
