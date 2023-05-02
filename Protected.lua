@@ -1,1 +1,1 @@
-warn("hi")
+print("troll")
