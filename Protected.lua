@@ -43,11 +43,11 @@ function infiniteRange()
             end
         end
     end
-    while task.wait() do
-        if Settings.escanorIR then
-            followEnemy()
-        end
-    end
+    followEnemy()
 end
 
-infiniteRange()
+while task.wait() do
+    if Settings.escanorIR then
+        infiniteRange()
+    end
+end
