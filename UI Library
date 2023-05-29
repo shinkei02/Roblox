@@ -1822,7 +1822,11 @@ function RayfieldLibrary:CreateWindow(Settings)
 			function SectionValue:Unlock(Reason)
 
 			end
-
+			
+			function SectionValue:Destroy()
+				Section:Destroy()
+			end
+			
 			return SectionValue
 		end
 
