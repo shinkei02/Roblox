@@ -1816,15 +1816,21 @@ function RayfieldLibrary:CreateWindow(Settings)
 				end
 			end)
 			SDone = true
+			
 			function SectionValue:Lock(Reason)
 
 			end
+			
 			function SectionValue:Unlock(Reason)
 
 			end
 			
 			function SectionValue:Destroy()
 				Section:Destroy()
+			end
+			
+			function SectionValue:Visible(bool)
+				Section.Visible = bool
 			end
 			
 			return SectionValue
